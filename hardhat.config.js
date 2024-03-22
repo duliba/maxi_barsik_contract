@@ -1,5 +1,3 @@
-//crss router 0xa040935d28834396C903491ED2e4bEFcE028b25D
-//crss factory 0x70115aB50D8aC3617631bbFd1177175490d4a383
 require("dotenv").config();
 
 require("@nomicfoundation/hardhat-verify");
@@ -24,56 +22,67 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  */
 module.exports = {
   solidity: {
-    compilers: [
-      {
-        version: "0.8.20",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        }
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
       },
-      {
-        version: "0.7.4",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 2,
-          },
-        }
+      evmVersion: "berlin",
+      metadata: {
+        bytecodeHash: "none",
       },
-      {
-        version: "0.8.17",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        }
-      },
-    ],
+    },
   },
-
   networks: {
+    "metis-goerli": {
+      url: "https://goerli.gateway.metisdevops.link",
+    },
+    "metis-sepolia": {
+      url: "https://sepolia.rpc.metisdevops.link",
+    },
+    andromeda: {
+      url: "https://andromeda.metis.io", // /?owner=1088
+      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
     goerli: {
       url: process.env.INFURA_GOERLI,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      //  gas: 2100000,
-      //   gasPrice: 8000000000,
-    },
-    andromeda: {
-      url: "https://andromeda.metis.io/?owner=1088",
-    },
-  },
-  gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
-    currency: "USD",
+    }
   },
   etherscan: {
     apiKey: {
-      goerli: process.env.ETHERSCAN_API_KEY,
-      andromeda: "apiKey is not required, just set a placeholder",
-    }
+      "metis-sepolia": "apiKey is not required, just set a placeholder",
+      "metis-goerli": "apiKey is not required, just set a placeholder",
+      "andromeda": "apiKey is not required, just set a placeholder",
+      "goerli": process.env.ETHERSCAN_API_KEY,
+    },
+    customChains: [
+      {
+        network: "andromeda",
+        chainId: 1088,
+        urls: {
+          apiURL:
+            "https://api.routescan.io/v2/network/mainnet/evm/1088/etherscan",
+          browserURL: "https://explorer.metis.io",
+        },
+      },
+      {
+        network: "metis-goerli",
+        chainId: 599,
+        urls: {
+          apiURL: "https://goerli.explorer.metisdevops.link/api",
+          browserURL: "https://goerli.explorer.metisdevops.link",
+        },
+      },
+      {
+        network: "metis-sepolia",
+        chainId: 59901,
+        urls: {
+          apiURL: "https://sepolia.explorer.metisdevops.link/api",
+          browserURL: "https://sepolia.explorer.metisdevops.link",
+        },
+      },
+    ],
   },
 };

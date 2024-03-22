@@ -22,3 +22,19 @@ Metis
 
 Goerli token deployed =>
 https://goerli.etherscan.io/address/0x4627f54ff4eDC3b1e4bD587bF2bA3f9cE2BbdD90#code
+
+Metis test token
+0x184FC4fEB19881d77C8920A4A3703bea05190337
+0x05DD6984E2D59f172652332087bc11B10238640f
+0xfacA2B369724E73CF29F0f60d9b0Db579AF006Df
+
+
+Create addresses 
+1. Input desired number of addresses in buyEarly.js createAccounts() function parameter, default is 15
+2. In terminal type "yarn hardhat run scripts/createAddresses.js"
+
+Execute buys
+1. Create addresses and load them with some Metis, 1$ worth of Metis in each should be enough for testing and to cover gas fees of swap and approve 
+2. In buyEarly.js, choose desired parameters in function executeSwaps() at the bottom of the file, first one is address of desired token being
+bought in string format, 2nd is time between swap execution in seconds (number), 3rd is option (bool) to automatically approve each address  for trading on Hermes, which is required for swap to succeed. 
+3. In terminal type "yarn hardhat run scripts/buyEarly.js"
