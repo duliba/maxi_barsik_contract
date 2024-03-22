@@ -45,17 +45,17 @@ module.exports = {
       url: "https://andromeda.metis.io", // /?owner=1088
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
-    goerli: {
-      url: process.env.INFURA_GOERLI,
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    }
+    /*  goerli: {
+        url: process.env.INFURA_GOERLI,
+        accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      } */
   },
   etherscan: {
     apiKey: {
       "metis-sepolia": "apiKey is not required, just set a placeholder",
       "metis-goerli": "apiKey is not required, just set a placeholder",
       "andromeda": "apiKey is not required, just set a placeholder",
-      "goerli": process.env.ETHERSCAN_API_KEY,
+      //  "goerli": process.env.ETHERSCAN_API_KEY,
     },
     customChains: [
       {
