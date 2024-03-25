@@ -12,4 +12,4 @@ const createAccounts = async (addressAmount) => {
     fs.writeFileSync("addresses/addresses.json", JSON.stringify(newAccounts))
 }
 
-createAccounts(15)
+createAccounts(10);
