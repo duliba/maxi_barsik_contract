@@ -132,3 +132,4 @@ dist
 
 # addresses
 addresses/addresses.json
+artifacts/@openzeppelin/*
