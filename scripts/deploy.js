@@ -7,7 +7,7 @@ const hre = require("hardhat");
 require("console")
 
 async function main() {
-    const TokenContract = await hre.ethers.getContractFactory("TokenContract");
+    const TokenContract = await hre.ethers.getContractFactory("BarsikToken");
     const tokenContract = await TokenContract.deploy();
     await tokenContract.deployed();
     console.log("Token contract deployed to:", tokenContract.address)
