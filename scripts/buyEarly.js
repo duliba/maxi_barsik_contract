@@ -147,4 +147,4 @@ const approveUsdtAll = async (routerAddr, onlyCheck) => {
 // param4(bool):Set saveGas to true or false, if true gas will be saved for one more tx (sell),
 // false will use most available gas not leaving enough for another swap
 
-executeSwaps(usdtTokenAddr, 1, 10, true)
+executeSwaps(usdtTokenAddr, 1, 10, true);
