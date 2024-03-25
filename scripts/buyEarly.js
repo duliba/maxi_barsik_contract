@@ -42,75 +42,106 @@ function delay(n) {
     });
 }
 
-const executeSwaps = async (toToken, delayBetweenSwaps, handleAllowance) => {
+const executeSwaps = async (toToken, delayBetweenSwaps, saveGas) => {
     Contract.setProvider("https://andromeda.metis.io");
     const routerContract = new web3.eth.Contract(routerAbi, routerAddress);
-    const tokenContract = new web3.eth.Contract(metisAbi, metisAddr);
-    const blockNumber = await web3.eth.getBlockNumber()
-    console.log(`Current block number is ${blockNumber}`)
-    const gasPrice = await web3.eth.getGasPrice()
-    console.log(`Current average gas price is ${gasPrice}`)
-    const minGasMetis = gasPrice * 280000
+    const boostedGasPrice = BigNumber.from(await web3.eth.getGasPrice()).mul(9).div(8)
+    const minGasMetis = saveGas ? BigNumber.from(boostedGasPrice).mul(500000) : BigNumber.from(boostedGasPrice).mul(250000)
 
     for (let i = 0; i < wallets.length; i++) {
-        const metisAllowance = await tokenContract.methods.allowance(wallets[i].address, routerAddress).call()
-        if (handleAllowance && metisAllowance < 1e28) {
-            const encoded = await tokenContract.methods.approve(routerAddress, maxUint).encodeABI()
+        const metisBalance = BigNumber.from(await web3.eth.getBalance(wallets[i].address))
+        if (metisBalance.gt(minGasMetis)) {
+            const adjustedBalance = metisBalance.sub(minGasMetis)
+            const encoded = await routerContract.methods.swapExactTokensForTokensSimple(adjustedBalance, BigNumber.from(0), metisAddr, toToken, false, wallets[i].address, BigNumber.from(10000000000)).encodeABI()
             var tx = {
-                gas: 100000,
-                to: metisAddr,
-                data: encoded
-            }
-            await web3.eth.accounts.signTransaction(tx, wallets[i].privateKey).then(signed => {
-                web3.eth.sendSignedTransaction(signed.rawTransaction).on('receipt', console.log)
-            })
-        }
-        const metisBalance = Number(await web3.eth.getBalance(wallets[i].address))
-        if (metisBalance > minGasMetis) {
-            const adjustedBalance = (metisBalance - minGasMetis).toString(10)
-
-            const encoded = await routerContract.methods.swapExactTokensForTokensSimple(BigNumber.from(adjustedBalance), 0, metisAddr, toToken, false, wallets[i].address, 10000000000).encodeABI()
-            var tx = {
-                gas: 280000,
+                gas: 250000,
                 to: routerAddress,
-                data: encoded
+                data: encoded,
+                gasPrice: boostedGasPrice
             }
             await web3.eth.accounts.signTransaction(tx, wallets[i].privateKey).then(signed => {
                 web3.eth.sendSignedTransaction(signed.rawTransaction).on('receipt', console.log)
             })
-            delay(delayBetweenSwaps)
+            await delay(delayBetweenSwaps)
         }
 
     }
 }
+const approveMetisAll = async (routerAddr, onlyCheck) => {
+    const tokenContract = new web3.eth.Contract(metisAbi, metisAddr);
+    let approvedAmount = 0
+    for (let i = 0; i < wallets.length; i++) {
+        const metisAllowance = await tokenContract.methods.allowance(wallets[i].address, routerAddr).call()
+        if (metisAllowance < 1e28) {
+            if (onlyCheck == false) {
+                const encoded = await tokenContract.methods.approve(routerAddr, maxUint).encodeABI()
+                var tx = {
+                    gas: 100000,
+                    to: metisAddr,
+                    data: encoded
+                }
+                await web3.eth.accounts.signTransaction(tx, wallets[i].privateKey).then(signed => {
+                    web3.eth.sendSignedTransaction(signed.rawTransaction).on('receipt', console.log)
+                })
+                await delay(5)
+                const metisAllowanceNew = await tokenContract.methods.allowance(wallets[i].address, routerAddr).call()
+                if (metisAllowanceNew >= 1e28) approvedAmount++
+            }
 
-/* const exec = async () => {
-    Contract.setProvider("https://andromeda.metis.io");
-    const routerContract = new web3.eth.Contract(routerAbi, routerAddress);
-    const uintVal0 = web3.utils.toWei('0.000001', 'ether'); // web3.eth.abi.encodeParameter('uint256', 100000)
-    const uintVal1 = web3.utils.toWei('0', 'ether');  // web3.eth.abi.encodeParameter('uint256', 0)
-    const uintVal2 = web3.eth.abi.encodeParameter('uint256', 171102120800)
-    const blockNumber = await web3.eth.getBlockNumber()
-    const metisBalance = await web3.eth.getBalance(wallets[2].address)
-    const gasPrice = await web3.eth.getGasPrice()
-    const minGasMetis = 70000 * gasPrice
-    const adjustedBalance = (metisBalance - minGasMetis * 1.2).toString()
-    const fac = await routerContract.methods.factory().call()
-     // estimate gas works only with pre-approved swaps
-    //  const estGas = await routerContract.methods.swapExactTokensForTokensSimple
-    //     (1000000000000, 0, metisAddr, toToken, false, wallets[0].address, 10000000000).estimateGas({ from: '0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe' })
-    // console.log(`Current estimated gas limit is ${estGas}`)
-    console.log(fac)
-    // const encoded = await routerContract.methods.swapExactTokensForTokens("10000", "0", [["0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000", "0xbB06DCA3AE6887fAbF931640f67cab3e3a16F4dC", true]], wallets[1].address, (blockNumber + 10000000)).encodeABI()
-    const encoded = await routerContract.methods.swapExactTokensForTokensSimple(81554920000000, 0, "0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000", "0xbB06DCA3AE6887fAbF931640f67cab3e3a16F4dC", false, wallets[0].address, 10000000000).encodeABI()
-    var tx = {
-        gas: 280000,
-        to: routerAddress,
-        data: encoded
+        } else approvedAmount++
     }
-    await web3.eth.accounts.signTransaction(tx, wallets[0].privateKey).then(signed => {
-        web3.eth.sendSignedTransaction(signed.rawTransaction).on('receipt', console.log)
-    })
-} */
+    if (approvedAmount == wallets.length) {
+        console.log("All tokens approved")
+    } else {
+        console.log(`${10 - approvedAmount} wallets not approved`)
+    }
 
-executeSwaps(usdtTokenAddr, 0.1, true)
+}
+
+const approveUsdtAll = async (routerAddr, onlyCheck) => {
+    const tokenContract = new web3.eth.Contract(usdtTokenAbi, usdtTokenAddr);
+    let approvedAmount = 0
+    for (let i = 0; i < wallets.length; i++) {
+        const usdtAllowance = await tokenContract.methods.allowance(wallets[i].address, routerAddr).call()
+        if (usdtAllowance < 1e28) {
+            if (onlyCheck == false) {
+                const encoded = await tokenContract.methods.approve(routerAddr, maxUint).encodeABI()
+                var tx = {
+                    gas: 100000,
+                    to: usdtTokenAddr,
+                    data: encoded
+                }
+                await web3.eth.accounts.signTransaction(tx, wallets[i].privateKey).then(signed => {
+                    web3.eth.sendSignedTransaction(signed.rawTransaction).on('receipt', console.log)
+                })
+                await delay(5)
+                const usdtAllowanceNew = await tokenContract.methods.allowance(wallets[i].address, routerAddr).call()
+                if (usdtAllowanceNew >= 1e28) approvedAmount++
+            }
+        } else approvedAmount++
+    }
+    if (approvedAmount == wallets.length) {
+        console.log("All tokens approved")
+    } else {
+        console.log(`${10 - approvedAmount} wallets not approved`)
+    }
+}
+
+
+//APPROVAL
+// param1(string):Insert router address you want to check for approval. 
+// param2(bool):Set onlyCheck to true or false, if true there will be no gas cost,
+// false will auto-approve each wallet below min threshold. 
+
+// approveMetisAll(routerAddress, true)
+// approveUsdtAll(routerAddress, true)
+
+
+
+// SWAP EXECUTION
+// param1(string):Choose token to be bought, make sure it is approved.
+// param2(number):Choose delay between swaps in seconds.
+// param3(bool):Set saveGas to true or false, if true gas will be saved for one more tx (sell),
+// false will use most available gas not leaving enough for another swap
+
+executeSwaps(usdtTokenAddr, 5, true)
