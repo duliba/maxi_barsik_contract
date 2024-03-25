@@ -42,7 +42,7 @@ function delay(n) {
     });
 }
 
-const executeSwaps = async (toToken, delayBetweenSwaps, saveGas) => {
+const executeSwaps = async (toToken, fromTimer, toTimer, saveGas,) => {
     Contract.setProvider("https://andromeda.metis.io");
     const routerContract = new web3.eth.Contract(routerAbi, routerAddress);
     const boostedGasPrice = BigNumber.from(await web3.eth.getGasPrice()).mul(9).div(8)
@@ -62,7 +62,9 @@ const executeSwaps = async (toToken, delayBetweenSwaps, saveGas) => {
             await web3.eth.accounts.signTransaction(tx, wallets[i].privateKey).then(signed => {
                 web3.eth.sendSignedTransaction(signed.rawTransaction).on('receipt', console.log)
             })
-            await delay(delayBetweenSwaps)
+            const txDelay = (Math.random() * (toTimer - fromTimer)) + fromTimer
+            await delay(txDelay)
+
         }
 
     }
@@ -140,8 +142,9 @@ const approveUsdtAll = async (routerAddr, onlyCheck) => {
 
 // SWAP EXECUTION
 // param1(string):Choose token to be bought, make sure it is approved.
-// param2(number):Choose delay between swaps in seconds.
-// param3(bool):Set saveGas to true or false, if true gas will be saved for one more tx (sell),
+// param2(number):Choose min possible delay between swaps in seconds.
+// param3(number):Choose max possible delay between swaps in seconds.
+// param4(bool):Set saveGas to true or false, if true gas will be saved for one more tx (sell),
 // false will use most available gas not leaving enough for another swap
 
-executeSwaps(usdtTokenAddr, 5, true)
+executeSwaps(usdtTokenAddr, 1, 10, true)
