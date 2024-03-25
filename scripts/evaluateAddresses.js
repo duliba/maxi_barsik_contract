@@ -52,7 +52,7 @@ const evaluate = async () => {
     // const routerContract = new web3.eth.Contract(routerAbi, routerAddress);
     let objArr = []
     for (let i = 0; i < wallets.length; i++) {
-        const metisBalance = BigNumber.from(await web3.eth.getBalance(wallets[i].address))
+        const metisBalance = BigNumber.from(await maxiContract.methods.balanceOf(wallets[i].address).call())
         const usdtBalance = BigNumber.from(await usdtContract.methods.balanceOf(wallets[i].address).call())
         console.log(metisBalance.toString())
         console.log(usdtBalance.toString())
