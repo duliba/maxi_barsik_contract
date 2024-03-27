@@ -5,17 +5,21 @@ const web3 = new Web3("https://andromeda.metis.io");
 const { BigNumber } = require("ethers");
 
 const barsikAbi = require("../abis/tokenAbi.json")
-const routerAbi = require("../abis/routerAbi.json")
+// const routerHermesAbi = require("../abis/routerHermesAbi.json")
+const routerHerculesAbi = require("../abis/routerHercules.json")
 const usdtTokenAbi = require("../abis/usdtAbi.json")
 const metisAbi = require("../abis/metis.json")
 
 const wallets = require("../addresses/addresses.json")
 
 const barsikAddress = "0xfacA2B369724E73CF29F0f60d9b0Db579AF006Df"
-const routerAddress = "0x2d4F788fDb262a25161Aa6D6e8e1f18458da8441"
+const routerHerculesAddress = "0x14679D1Da243B8c7d1A4c6d0523A2Ce614Ef027C"
+const routerHermesAddress = "0x2d4F788fDb262a25161Aa6D6e8e1f18458da8441"
 const usdtTokenAddr = "0xbB06DCA3AE6887fAbF931640f67cab3e3a16F4dC"
 const metisAddr = "0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000"
-
+const usdcAddress = "0xEA32A96608495e54156Ae48931A7c20f0dcc1a21"
+const wMetis = "0x75cb093E4D61d2A2e65D8e0BBb01DE8d89b53481"
+const addressZero = "0x0000000000000000000000000000000000000000"
 const maxUint = BigNumber.from("115792089237316195423570985008687907853269984665640564039457584007913129639935")
 const halfMaxUint = BigNumber.from("23570985008687907853269984665640564039457584007913129639935")
 
@@ -42,22 +46,35 @@ function delay(n) {
     });
 }
 
-const executeSwaps = async (toToken, fromTimer, toTimer, saveGas,) => {
+const executeSwaps = async (toToken, fromTimer, toTimer) => {
     Contract.setProvider("https://andromeda.metis.io");
-    const routerContract = new web3.eth.Contract(routerAbi, routerAddress);
-    const boostedGasPrice = BigNumber.from(await web3.eth.getGasPrice()).mul(9).div(8)
-    const minGasMetis = saveGas ? BigNumber.from(boostedGasPrice).mul(500000) : BigNumber.from(boostedGasPrice).mul(250000)
+    const routerContract = new web3.eth.Contract(routerHerculesAbi, routerHerculesAddress);
+    const boostedGasPrice = BigNumber.from(await web3.eth.getGasPrice()).mul(11).div(10)
+    const minGasSwap = boostedGasPrice.mul('250000')
 
     for (let i = 0; i < wallets.length; i++) {
+        const rnd = ((Math.random() * 2 + 1) * 1e18)
+        const multiplier = BigNumber.from(rnd.toFixed(0))
+        const minGasRandom = boostedGasPrice.mul('250000').mul(multiplier).div(BigNumber.from(10).pow(18))
         const metisBalance = BigNumber.from(await web3.eth.getBalance(wallets[i].address))
-        if (metisBalance.gt(minGasMetis)) {
-            const adjustedBalance = metisBalance.sub(minGasMetis)
-            const encoded = await routerContract.methods.swapExactTokensForTokensSimple(adjustedBalance, BigNumber.from(0), metisAddr, toToken, false, wallets[i].address, BigNumber.from(10000000000)).encodeABI()
+        const gasLeft = minGasSwap.add(minGasRandom)
+        if (metisBalance.gt(gasLeft)) {
+            const adjustedBalance = metisBalance.sub(gasLeft)
+            const encoded = await routerContract.methods.swapExactETHForTokensSupportingFeeOnTransferTokens(
+                BigNumber.from(0),
+                [wMetis, toToken],
+                wallets[i].address,
+                addressZero,
+                BigNumber.from("10000000000")
+            ).encodeABI()
+            //  const encoded = await routerContract.methods.swapExactTokensForTokensSimple(adjustedBalance, BigNumber.from(0), metisAddr, toToken, false, wallets[i].address, BigNumber.from(10000000000)).encodeABI()
             var tx = {
                 gas: 250000,
-                to: routerAddress,
+                to: routerHerculesAddress,
                 data: encoded,
-                gasPrice: boostedGasPrice
+                gasPrice: boostedGasPrice,
+                value: adjustedBalance
+
             }
             await web3.eth.accounts.signTransaction(tx, wallets[i].privateKey).then(signed => {
                 web3.eth.sendSignedTransaction(signed.rawTransaction).on('receipt', console.log)
@@ -95,7 +112,7 @@ const approveMetisAll = async (routerAddr, onlyCheck) => {
     if (approvedAmount == wallets.length) {
         console.log("All tokens approved")
     } else {
-        console.log(`${10 - approvedAmount} wallets not approved`)
+        console.log(`${wallets.length - approvedAmount} wallets not approved`)
     }
 
 }
@@ -131,11 +148,11 @@ const approveUsdtAll = async (routerAddr, onlyCheck) => {
 
 
 //APPROVAL
-// param1(string):Insert router address you want to check for approval. 
+// param1(string):Insert router address you want to check for approval.
 // param2(bool):Set onlyCheck to true or false, if true there will be no gas cost,
-// false will auto-approve each wallet below min threshold. 
+// false will auto-approve each wallet below min threshold.
 
-// approveMetisAll(routerAddress, true)
+// approveMetisAll(routerHerculesAddress, false)
 // approveUsdtAll(routerAddress, true)
 
 
@@ -147,4 +164,4 @@ const approveUsdtAll = async (routerAddr, onlyCheck) => {
 // param4(bool):Set saveGas to true or false, if true gas will be saved for one more tx (sell),
 // false will use most available gas not leaving enough for another swap
 
-executeSwaps(usdtTokenAddr, 1, 10, true);
+executeSwaps(usdcAddress, 1, 10);
